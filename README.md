@@ -1,4 +1,4 @@
-# Tugo
+# TuGo
 
 ![A git push on top, and Tugo on the server below pulling the change and running docker compose a moment later](docs/demo.gif)
 
