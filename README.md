@@ -34,7 +34,7 @@ sudo make service
 This does four things:
 
 1. It builds the `tugo` binary.
-2. It copies it to `/opt/tugo`.
+2. It copies it to `/opt/tugo`, along with the example config if there's no config there yet.
 3. It links it to `/usr/local/bin/tugo`, so you can run `tugo` from anywhere.
 4. It starts a `tugo` service. The service runs as your user, so it uses your git keys.
 
@@ -42,16 +42,15 @@ Next, [write your config](#config).
 
 ## Config
 
-Tugo reads `config.yaml` from the same folder as the binary. So the live config is `/opt/tugo/config.yaml`.
+Tugo reads `config.yaml` from the same folder as the binary. So the live config is `/opt/tugo/config.yaml`. The first install puts the example config there, so you only have to change it:
 
 ```
-cp example-config.yaml /opt/tugo/config.yaml
 tugo -e
 sudo systemctl restart tugo
 ```
 
 > [!IMPORTANT]
-> Always edit the config in `/opt/tugo`. A `config.yaml` in the repo folder only gets copied on the first install. After that, changes to it do nothing.
+> Always edit the config in `/opt/tugo`. A `config.yaml` in the repo folder only gets copied on the first install, instead of the example. After that, changes to it do nothing.
 
 ### A simple config
 

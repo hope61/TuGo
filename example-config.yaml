@@ -1,7 +1,7 @@
 # Tugo example config
 #
-# Copy this to config.yaml next to the tugo binary (/opt/tugo/config.yaml
-# when installed with `make service`), then `sudo systemctl restart tugo`.
+# `make service` copies this to /opt/tugo/config.yaml on the first install.
+# Change it with `tugo -e`, then `sudo systemctl restart tugo`.
 #
 #   mode:                              (optional) poll or webhook. defaults to poll
 #   interval:                          (optional) poll mode: time between checks, e.g. 30s, 5m, 1h. defaults to 5m

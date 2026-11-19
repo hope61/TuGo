@@ -12,7 +12,10 @@ install: build
 	mkdir -p $(PREFIX)
 	install -m 755 tugo $(PREFIX)/tugo
 	ln -sf $(PREFIX)/tugo /usr/local/bin/tugo
-	@if [ ! -f $(PREFIX)/config.yaml ] && [ -f config.yaml ]; then install -m 644 config.yaml $(PREFIX)/config.yaml; fi
+	@if [ ! -f $(PREFIX)/config.yaml ]; then \
+		if [ -f config.yaml ]; then install -m 644 config.yaml $(PREFIX)/config.yaml; \
+		else install -m 644 example-config.yaml $(PREFIX)/config.yaml; fi; \
+	fi
 	chown -R $(SERVICE_USER) $(PREFIX)
 
 service: install
