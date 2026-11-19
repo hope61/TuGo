@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hope61/GoCD/internal/config"
-	"github.com/hope61/GoCD/internal/git"
-	"github.com/hope61/GoCD/internal/history"
-	"github.com/hope61/GoCD/internal/logger"
-	"github.com/hope61/GoCD/internal/webhook"
+	"github.com/hope61/tugo/internal/config"
+	"github.com/hope61/tugo/internal/git"
+	"github.com/hope61/tugo/internal/history"
+	"github.com/hope61/tugo/internal/logger"
+	"github.com/hope61/tugo/internal/webhook"
 )
 
 func main() {
@@ -22,11 +22,11 @@ func main() {
 	flag.BoolVar(showLogs, "l", false, "show the latest 50 lines of logs")
 	followLogs := flag.Bool("f", false, "follow logs in real time (use with -l)")
 	edit := flag.Bool("e", false, "edit config.yaml (like crontab -e)")
-	addHook := flag.Bool("add-hook", false, "add the webhook to the given repos: gocd --add-hook owner/repo ...")
-	removeHook := flag.Bool("remove-hook", false, "remove the webhook from the given repos: gocd --remove-hook owner/repo ...")
+	addHook := flag.Bool("add-hook", false, "add the webhook to the given repos: tugo --add-hook owner/repo ...")
+	removeHook := flag.Bool("remove-hook", false, "remove the webhook from the given repos: tugo --remove-hook owner/repo ...")
 	check := flag.Bool("check", false, "check all repos now and exit")
 	flag.BoolVar(check, "c", false, "check all repos now and exit")
-	showHistory := flag.Bool("history", false, "show the last deploys: gocd --history [n]")
+	showHistory := flag.Bool("history", false, "show the last deploys: tugo --history [n]")
 	flag.Usage = usage
 	flag.Parse()
 
@@ -47,7 +47,7 @@ func main() {
 			var err error
 			n, err = strconv.Atoi(arg)
 			if err != nil || n < 1 {
-				log.Fatalf("--history takes a number of deploys, e.g. gocd --history 50")
+				log.Fatalf("--history takes a number of deploys, e.g. tugo --history 50")
 			}
 		}
 		history.Show(binDir, n)

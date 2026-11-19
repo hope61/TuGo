@@ -34,7 +34,7 @@ func Setup(dir string) *os.File {
 
 	CleanOldLogs(logsDir, 7*24*time.Hour)
 
-	filename := fmt.Sprintf("gocd_%s.log", time.Now().Format("2006-01-02"))
+	filename := fmt.Sprintf("tugo_%s.log", time.Now().Format("2006-01-02"))
 	logPath := filepath.Join(logsDir, filename)
 
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -57,7 +57,7 @@ func ShowLogs(dir string, n int) {
 		if err != nil || d.IsDir() {
 			return nil
 		}
-		if strings.HasPrefix(d.Name(), "gocd_") && strings.HasSuffix(d.Name(), ".log") {
+		if strings.HasPrefix(d.Name(), "tugo_") && strings.HasSuffix(d.Name(), ".log") {
 			logFiles = append(logFiles, path)
 		}
 		return nil
@@ -151,7 +151,7 @@ func listLogFiles(logsDir string) []string {
 		if err != nil || d.IsDir() {
 			return nil
 		}
-		if strings.HasPrefix(d.Name(), "gocd_") && strings.HasSuffix(d.Name(), ".log") {
+		if strings.HasPrefix(d.Name(), "tugo_") && strings.HasSuffix(d.Name(), ".log") {
 			logFiles = append(logFiles, path)
 		}
 		return nil
@@ -190,7 +190,7 @@ func CleanOldLogs(dir string, maxAge time.Duration) {
 		if err != nil || d.IsDir() {
 			return nil
 		}
-		if !strings.HasPrefix(d.Name(), "gocd_") || !strings.HasSuffix(d.Name(), ".log") {
+		if !strings.HasPrefix(d.Name(), "tugo_") || !strings.HasSuffix(d.Name(), ".log") {
 			return nil
 		}
 

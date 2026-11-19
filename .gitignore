@@ -1,5 +1,4 @@
-/gocd
-/GoCD
+/tugo
 logs/
 config.yaml
 webhook.secret

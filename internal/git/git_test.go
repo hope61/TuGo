@@ -12,7 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/hope61/GoCD/internal/testutil"
+	"github.com/hope61/tugo/internal/testutil"
 )
 
 func TestMain(m *testing.M) {

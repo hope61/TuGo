@@ -1,14 +1,14 @@
-# GoCD example config
+# Tugo example config
 #
-# Copy this to config.yaml next to the gocd binary (/opt/gocd/config.yaml
-# when installed with `make service`), then `sudo systemctl restart gocd`.
+# Copy this to config.yaml next to the tugo binary (/opt/tugo/config.yaml
+# when installed with `make service`), then `sudo systemctl restart tugo`.
 #
 #   mode:                              (optional) poll or webhook. defaults to poll
 #   interval:                          (optional) poll mode: time between checks, e.g. 30s, 5m, 1h. defaults to 5m
 #   timeout:                           (optional) kill a command that runs longer than this. defaults to 30m
 #   listen:                            (optional) webhook mode: address to listen on. defaults to :9000
 #   secret:                            (required in webhook mode) must match the secret set on the GitHub webhook
-#   url:                               (optional) public webhook url, used by gocd --add-hook / --remove-hook
+#   url:                               (optional) public webhook url, used by tugo --add-hook / --remove-hook
 #   repos:
 #     - dir: /absolute/path/to/repo    (required) the local path to the git repo
 #       remote: origin                 (optional) defaults to "origin"

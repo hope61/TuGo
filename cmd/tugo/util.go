@@ -7,13 +7,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hope61/GoCD/internal/config"
-	"github.com/hope61/GoCD/internal/github"
-	"github.com/hope61/GoCD/internal/logger"
+	"github.com/hope61/tugo/internal/config"
+	"github.com/hope61/tugo/internal/github"
+	"github.com/hope61/tugo/internal/logger"
 )
 
 func usage() {
-	fmt.Fprintf(flag.CommandLine.Output(), `gocd keeps the git repos in config.yaml up to date.
+	fmt.Fprintf(flag.CommandLine.Output(), `tugo keeps the git repos in config.yaml up to date.
 Run without flags it starts the service loop.
 
 Config file: %s
@@ -41,7 +41,7 @@ Webhooks:
 
 func manageHooks(cfg *config.Config, add bool, repos []string) {
 	if len(repos) == 0 {
-		log.Fatalf("no repos given, e.g. gocd --add-hook owner/repo")
+		log.Fatalf("no repos given, e.g. tugo --add-hook owner/repo")
 	}
 	if cfg.URL == "" {
 		log.Fatalf("set url in config.yaml to the public webhook url")

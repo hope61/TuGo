@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hope61/GoCD/internal/config"
-	"github.com/hope61/GoCD/internal/history"
-	"github.com/hope61/GoCD/internal/testutil"
+	"github.com/hope61/tugo/internal/config"
+	"github.com/hope61/tugo/internal/history"
+	"github.com/hope61/tugo/internal/testutil"
 )
 
 func captureLog(t *testing.T) *bytes.Buffer {

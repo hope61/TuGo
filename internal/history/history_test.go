@@ -44,7 +44,7 @@ func TestShowGroupsByDayNewestFirst(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Now()
 	add(t, dir, Entry{Time: time.Date(2020, 3, 4, 22, 47, 0, 0, time.Local), Repo: "/srv/my-portfolio", Commit: "77ab120", Message: "update list (hope61)", Commits: 1, Took: 9 * time.Second})
-	add(t, dir, Entry{Time: now.AddDate(0, 0, -1), Repo: "/srv/GoCD", Commit: "3cd01fb", Message: strings.Repeat("ж", 60) + " (hope61)", Commits: 1, Took: 41 * time.Second})
+	add(t, dir, Entry{Time: now.AddDate(0, 0, -1), Repo: "/srv/tugo", Commit: "3cd01fb", Message: strings.Repeat("ж", 60) + " (hope61)", Commits: 1, Took: 41 * time.Second})
 	add(t, dir, Entry{Time: now, Repo: "/srv/dipbot", Commit: "9f8e7d1", Message: "new alert (hope61)", Commits: 3, Error: "command failed with exit code 1: npm run build", Took: 2600 * time.Millisecond})
 
 	out := captureStdout(t, func() { Show(dir, 20) })
@@ -52,7 +52,7 @@ func TestShowGroupsByDayNewestFirst(t *testing.T) {
 	for _, want := range []string{
 		"  " + now.Format("15:04") + "  ✗  dipbot        9f8e7d1  new alert (hope61) +2",
 		"\n            command failed with exit code 1: npm run build\n",
-		"  ✓  GoCD          3cd01fb  " + strings.Repeat("ж", 37) + "...",
+		"  ✓  tugo          3cd01fb  " + strings.Repeat("ж", 37) + "...",
 		"  22:47  ✓  my-portfolio  77ab120  update list (hope61)",
 		"\n3 deploys, 1 failed\n",
 	} {

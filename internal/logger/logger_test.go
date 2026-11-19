@@ -68,7 +68,7 @@ func TestSetupWritesToTodaysFile(t *testing.T) {
 	})
 	f.Close()
 
-	name := fmt.Sprintf("gocd_%s.log", time.Now().Format("2006-01-02"))
+	name := fmt.Sprintf("tugo_%s.log", time.Now().Format("2006-01-02"))
 	data, err := os.ReadFile(filepath.Join(dir, "logs", name))
 	if err != nil {
 		t.Fatal(err)
@@ -93,10 +93,10 @@ func TestCleanOldLogs(t *testing.T) {
 	buf := captureLog(t)
 	old := time.Now().Add(-8 * 24 * time.Hour)
 
-	oldLog := writeLog(t, dir, "gocd_2026-01-01.log", "old")
-	newLog := writeLog(t, dir, "gocd_2026-11-15.log", "new")
+	oldLog := writeLog(t, dir, "tugo_2026-01-01.log", "old")
+	newLog := writeLog(t, dir, "tugo_2026-11-15.log", "new")
 	otherOld := writeLog(t, dir, "notes.txt", "keep me")
-	oldNotLog := writeLog(t, dir, "gocd_backup.txt", "keep me too")
+	oldNotLog := writeLog(t, dir, "tugo_backup.txt", "keep me too")
 	for _, p := range []string{oldLog, otherOld, oldNotLog} {
 		os.Chtimes(p, old, old)
 	}
@@ -111,20 +111,20 @@ func TestCleanOldLogs(t *testing.T) {
 			t.Fatalf("%s should be kept: %v", filepath.Base(p), err)
 		}
 	}
-	if !strings.Contains(buf.String(), "deleted old log file: gocd_2026-01-01.log") {
+	if !strings.Contains(buf.String(), "deleted old log file: tugo_2026-01-01.log") {
 		t.Fatalf("deletion not logged: %q", buf.String())
 	}
 }
 
 func TestListLogFiles(t *testing.T) {
 	dir := t.TempDir()
-	writeLog(t, dir, "gocd_2026-11-02.log", "b")
-	writeLog(t, dir, "gocd_2026-11-01.log", "a")
+	writeLog(t, dir, "tugo_2026-11-02.log", "b")
+	writeLog(t, dir, "tugo_2026-11-01.log", "a")
 	writeLog(t, dir, "other.log", "x")
-	writeLog(t, dir, "gocd_notes.txt", "x")
+	writeLog(t, dir, "tugo_notes.txt", "x")
 
 	files := listLogFiles(dir)
-	if len(files) != 2 || filepath.Base(files[0]) != "gocd_2026-11-01.log" || filepath.Base(files[1]) != "gocd_2026-11-02.log" {
+	if len(files) != 2 || filepath.Base(files[0]) != "tugo_2026-11-01.log" || filepath.Base(files[1]) != "tugo_2026-11-02.log" {
 		t.Fatalf("got %v", files)
 	}
 
@@ -142,8 +142,8 @@ func TestShowLogs(t *testing.T) {
 
 	logs := filepath.Join(dir, "logs")
 	os.MkdirAll(logs, 0755)
-	writeLog(t, logs, "gocd_2026-11-01.log", "a1", "a2", "a3")
-	writeLog(t, logs, "gocd_2026-11-02.log", "b1", "b2")
+	writeLog(t, logs, "tugo_2026-11-01.log", "a1", "a2", "a3")
+	writeLog(t, logs, "tugo_2026-11-02.log", "b1", "b2")
 
 	if out := captureStdout(t, func() { ShowLogs(dir, 4) }); out != "a2\na3\nb1\nb2\n" {
 		t.Fatalf("last 4 lines across files: got %q", out)

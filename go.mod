@@ -1,4 +1,4 @@
-module github.com/hope61/GoCD
+module github.com/hope61/tugo
 
 go 1.26.0
 

@@ -18,17 +18,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hope61/GoCD/internal/testutil"
+	"github.com/hope61/tugo/internal/testutil"
 )
 
 var builtBinary string
 
 func TestMain(m *testing.M) {
-	dir, err := os.MkdirTemp("", "gocd-e2e-*")
+	dir, err := os.MkdirTemp("", "tugo-e2e-*")
 	if err != nil {
 		panic(err)
 	}
-	builtBinary = filepath.Join(dir, "gocd")
+	builtBinary = filepath.Join(dir, "tugo")
 	if out, err := exec.Command("go", "build", "-o", builtBinary, ".").CombinedOutput(); err != nil {
 		panic(fmt.Sprintf("build failed: %v\n%s", err, out))
 	}
@@ -57,7 +57,7 @@ func (b *syncBuffer) String() string {
 func install(t *testing.T, cfg string) (string, string) {
 	t.Helper()
 	dir := t.TempDir()
-	bin := filepath.Join(dir, "gocd")
+	bin := filepath.Join(dir, "tugo")
 	data, err := os.ReadFile(builtBinary)
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +69,7 @@ func install(t *testing.T, cfg string) (string, string) {
 	return dir, bin
 }
 
-func gocd(t *testing.T, bin, stdin string, args ...string) (string, int) {
+func tugo(t *testing.T, bin, stdin string, args ...string) (string, int) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -155,7 +155,7 @@ func waitForPort(t *testing.T, addr string) {
 
 func TestE2EHelp(t *testing.T) {
 	dir, bin := install(t, "")
-	out, code := gocd(t, bin, "", "-h")
+	out, code := tugo(t, bin, "", "-h")
 
 	real, _ := filepath.EvalSymlinks(dir)
 	if code != 0 || !strings.Contains(out, "Config file: "+filepath.Join(real, "config.yaml")) || !strings.Contains(out, "-c, --check") {
@@ -177,7 +177,7 @@ func TestE2EConfigErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, bin := install(t, tt.cfg)
-			out, code := gocd(t, bin, "", "-c")
+			out, code := tugo(t, bin, "", "-c")
 			if code != 1 || !strings.Contains(out, tt.want) {
 				t.Fatalf("exit %d, want 1 and %q:\n%s", code, tt.want, out)
 			}
@@ -190,46 +190,46 @@ func TestE2ECheckAndLogs(t *testing.T) {
 	r.Push(t, "fix navbar", "update list")
 	dir, bin := install(t, fmt.Sprintf("repos:\n  - dir: %s\n    commands:\n      - echo deployed\n", r.Srv))
 
-	out, _ := gocd(t, bin, "", "-l")
+	out, _ := tugo(t, bin, "", "-l")
 	if !strings.Contains(out, "no log files found") {
 		t.Fatalf("-l before any log:\n%s", out)
 	}
 
-	out, _ = gocd(t, bin, "", "--history")
+	out, _ = tugo(t, bin, "", "--history")
 	if !strings.Contains(out, "no deploys yet") {
 		t.Fatalf("--history before any deploy:\n%s", out)
 	}
 
-	out, code := gocd(t, bin, "", "-c")
+	out, code := tugo(t, bin, "", "-c")
 	for _, want := range []string{"pulled 2 new commits in " + r.Srv, " update list (tester)", "running: echo deployed", "command finished successfully", "checked 1 repos"} {
 		if code != 0 || !strings.Contains(out, want) {
 			t.Fatalf("-c missing %q (exit %d):\n%s", want, code, out)
 		}
 	}
 
-	files, _ := filepath.Glob(filepath.Join(dir, "logs", "gocd_*.log"))
+	files, _ := filepath.Glob(filepath.Join(dir, "logs", "tugo_*.log"))
 	if len(files) != 1 {
 		t.Fatalf("expected one daily log file, got %v", files)
 	}
 
-	out, _ = gocd(t, bin, "", "--check")
+	out, _ = tugo(t, bin, "", "--check")
 	if strings.Contains(out, "pulled") || !strings.Contains(out, "checked 1 repos") {
 		t.Fatalf("second check should find nothing:\n%s", out)
 	}
 
-	out, _ = gocd(t, bin, "", "--logs")
+	out, _ = tugo(t, bin, "", "--logs")
 	if !strings.Contains(out, "pulled 2 new commits") || strings.Count(out, "checked 1 repos") != 2 {
 		t.Fatalf("-l should show both runs:\n%s", out)
 	}
 
-	out, code = gocd(t, bin, "", "--history", "5")
+	out, code = tugo(t, bin, "", "--history", "5")
 	for _, want := range []string{"Today\n", "  ✓  srv  ", " update list (tester) +1", "1 deploy, 0 failed"} {
 		if code != 0 || !strings.Contains(out, want) {
 			t.Fatalf("--history missing %q (exit %d):\n%s", want, code, out)
 		}
 	}
 
-	out, code = gocd(t, bin, "", "--history", "abc")
+	out, code = tugo(t, bin, "", "--history", "abc")
 	if code != 1 || !strings.Contains(out, "--history takes a number of deploys") {
 		t.Fatalf("bad number should fail (exit %d):\n%s", code, out)
 	}
@@ -241,11 +241,11 @@ func TestE2EFollowLogsWaitsForFirstLog(t *testing.T) {
 
 	time.Sleep(700 * time.Millisecond)
 	os.MkdirAll(filepath.Join(dir, "logs"), 0755)
-	os.WriteFile(filepath.Join(dir, "logs", "gocd_2026-11-15.log"), []byte("first line\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "logs", "tugo_2026-11-15.log"), []byte("first line\n"), 0644)
 
 	waitFor(t, "the first log line", 5*time.Second, func() bool { return strings.Contains(out.String(), "first line") })
 
-	f, _ := os.OpenFile(filepath.Join(dir, "logs", "gocd_2026-11-15.log"), os.O_APPEND|os.O_WRONLY, 0644)
+	f, _ := os.OpenFile(filepath.Join(dir, "logs", "tugo_2026-11-15.log"), os.O_APPEND|os.O_WRONLY, 0644)
 	f.WriteString("second line\n")
 	f.Close()
 	waitFor(t, "a line added later", 5*time.Second, func() bool { return strings.Contains(out.String(), "second line") })
@@ -276,7 +276,7 @@ func TestE2EWebhookMode(t *testing.T) {
 	_, bin := install(t, fmt.Sprintf("mode: webhook\nlisten: %s\nsecret: s3cret\nrepos:\n  - dir: %s\n    commands:\n      - echo pulled >> marker\n", addr, r.Srv))
 	marker := filepath.Join(r.Srv, "marker")
 
-	r.Push(t, "pushed while gocd was off")
+	r.Push(t, "pushed while tugo was off")
 	out := start(t, bin)
 	waitFor(t, "the startup check", 10*time.Second, func() bool { return lines(marker) == 1 })
 	if !strings.Contains(out.String(), "started webhook on "+addr+" for 1 repos") {
@@ -368,28 +368,28 @@ func TestE2EHooks(t *testing.T) {
 
 	_, bin := install(t, "mode: poll\nsecret: s3cret\nurl: https://hook.example.com/\n")
 
-	out, code := gocd(t, bin, "", "--add-hook", "hope61/new", "hope61/old")
+	out, code := tugo(t, bin, "", "--add-hook", "hope61/new", "hope61/old")
 	if code != 1 || !strings.Contains(out, "done: hope61/new") || !strings.Contains(out, "ERROR: hope61/old") || !strings.Contains(out, "already has a webhook") {
 		t.Fatalf("add-hook: exit %d\n%s", code, out)
 	}
 
-	out, code = gocd(t, bin, "", "--remove-hook", "hope61/old")
+	out, code = tugo(t, bin, "", "--remove-hook", "hope61/old")
 	calls, _ := os.ReadFile(filepath.Join(ghDir, "calls"))
 	if code != 0 || !strings.Contains(out, "done: hope61/old") || !strings.Contains(string(calls), "-X DELETE repos/hope61/old/hooks/5") {
 		t.Fatalf("remove-hook: exit %d\n%s\ncalls:\n%s", code, out, calls)
 	}
 
-	if out, code := gocd(t, bin, "", "--add-hook"); code != 1 || !strings.Contains(out, "no repos given") {
+	if out, code := tugo(t, bin, "", "--add-hook"); code != 1 || !strings.Contains(out, "no repos given") {
 		t.Fatalf("no repos: exit %d\n%s", code, out)
 	}
 
 	_, noURL := install(t, "mode: poll\nsecret: s3cret\n")
-	if out, code := gocd(t, noURL, "", "--add-hook", "hope61/app"); code != 1 || !strings.Contains(out, "set url in config.yaml") {
+	if out, code := tugo(t, noURL, "", "--add-hook", "hope61/app"); code != 1 || !strings.Contains(out, "set url in config.yaml") {
 		t.Fatalf("no url: exit %d\n%s", code, out)
 	}
 
 	_, noSecret := install(t, "mode: poll\nurl: https://hook.example.com/\n")
-	if out, code := gocd(t, noSecret, "", "--add-hook", "hope61/app"); code != 1 || !strings.Contains(out, "set secret in config.yaml first") {
+	if out, code := tugo(t, noSecret, "", "--add-hook", "hope61/app"); code != 1 || !strings.Contains(out, "set secret in config.yaml first") {
 		t.Fatalf("no secret: exit %d\n%s", code, out)
 	}
 }
@@ -411,7 +411,7 @@ func TestE2EEditConfig(t *testing.T) {
 	t.Run("valid edit is saved", func(t *testing.T) {
 		dir, bin := install(t, "")
 		t.Setenv("EDITOR", editor("write-good", `/bin/cp "`+good+`" "$1"`))
-		out, code := gocd(t, bin, "", "-e")
+		out, code := tugo(t, bin, "", "-e")
 		saved, _ := os.ReadFile(filepath.Join(dir, "config.yaml"))
 		want, _ := os.ReadFile(good)
 		if code != 0 || !strings.Contains(out, "saved ") || !bytes.Equal(saved, want) {
@@ -422,7 +422,7 @@ func TestE2EEditConfig(t *testing.T) {
 	t.Run("no change", func(t *testing.T) {
 		_, bin := install(t, "mode: poll\n")
 		t.Setenv("EDITOR", editor("noop", "true\n"))
-		if out, code := gocd(t, bin, "", "-e"); code != 0 || !strings.Contains(out, "no changes made") {
+		if out, code := tugo(t, bin, "", "-e"); code != 0 || !strings.Contains(out, "no changes made") {
 			t.Fatalf("exit %d\n%s", code, out)
 		}
 	})
@@ -430,7 +430,7 @@ func TestE2EEditConfig(t *testing.T) {
 	t.Run("broken config is never saved", func(t *testing.T) {
 		dir, bin := install(t, "mode: poll\n")
 		t.Setenv("EDITOR", editor("write-bad", `/bin/cp "`+bad+`" "$1"`))
-		out, code := gocd(t, bin, "n\n", "-e")
+		out, code := tugo(t, bin, "n\n", "-e")
 		saved, _ := os.ReadFile(filepath.Join(dir, "config.yaml"))
 		if code != 0 || !strings.Contains(out, "config has errors") || !strings.Contains(out, "changes discarded") || string(saved) != "mode: poll\n" {
 			t.Fatalf("exit %d\n%s\nconfig now: %q", code, out, saved)
@@ -442,7 +442,7 @@ func TestE2EEditConfig(t *testing.T) {
 		count := filepath.Join(tools, "count")
 		os.Remove(count)
 		t.Setenv("EDITOR", editor("bad-then-good", `if [ -f "`+count+`" ]; then /bin/cp "`+good+`" "$1"; else : > "`+count+`"; /bin/cp "`+bad+`" "$1"; fi`+"\n"))
-		out, code := gocd(t, bin, "y\n", "-e")
+		out, code := tugo(t, bin, "y\n", "-e")
 		saved, _ := os.ReadFile(filepath.Join(dir, "config.yaml"))
 		want, _ := os.ReadFile(good)
 		if code != 0 || !strings.Contains(out, "config has errors") || !strings.Contains(out, "saved ") || !bytes.Equal(saved, want) {

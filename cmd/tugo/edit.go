@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hope61/GoCD/internal/config"
+	"github.com/hope61/tugo/internal/config"
 )
 
 func editConfig(path string) {
@@ -27,7 +27,7 @@ func editConfig(path string) {
 		log.Fatalf("failed to read config: %v", err)
 	}
 
-	tmp, err := os.CreateTemp("", "gocd-config-*.yaml")
+	tmp, err := os.CreateTemp("", "tugo-config-*.yaml")
 	if err != nil {
 		log.Fatalf("failed to create temp file: %v", err)
 	}
@@ -60,7 +60,7 @@ func editConfig(path string) {
 		if err := os.WriteFile(path, edited, 0644); err != nil {
 			log.Fatalf("failed to save config: %v (try with sudo)", err)
 		}
-		fmt.Printf("saved %s\nrestart to apply: sudo systemctl restart gocd\n", path)
+		fmt.Printf("saved %s\nrestart to apply: sudo systemctl restart tugo\n", path)
 		return
 	}
 }
