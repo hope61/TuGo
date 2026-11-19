@@ -161,13 +161,32 @@ func TestRunCommand(t *testing.T) {
 		}
 	})
 
+	t.Run("shell builtins and variables", func(t *testing.T) {
+		dir := t.TempDir()
+		os.Mkdir(filepath.Join(dir, "app"), 0755)
+		for _, command := range []string{
+			"cd app && touch built.txt",
+			"export X=1 && test \"$X\" = 1",
+			"NODE_ENV=production sh -c 'test \"$NODE_ENV\" = production'",
+			"exit 0",
+		} {
+			if err := RunCommand(dir, command, time.Minute); err != nil {
+				t.Fatalf("%q: %v", command, err)
+			}
+		}
+		if _, err := os.Stat(filepath.Join(dir, "app", "built.txt")); err != nil {
+			t.Fatal("cd did not change the folder for the rest of the command")
+		}
+	})
+
 	tests := []struct {
 		name    string
 		command string
 		want    string
 	}{
 		{"exit code", "sh -c 'exit 3'", "command failed with exit code 3"},
-		{"missing program", "definitely-not-a-real-command-xyz --flag", "command not found: 'definitely-not-a-real-command-xyz'"},
+		{"missing program", "definitely-not-a-real-command-xyz --flag", "command not found: definitely-not-a-real-command-xyz --flag"},
+		{"missing program after a builtin", "cd . && definitely-not-a-real-command-xyz", "command not found: cd . && definitely-not-a-real-command-xyz"},
 		{"empty command", "   ", "empty command in config"},
 	}
 	for _, tt := range tests {

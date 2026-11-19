@@ -111,13 +111,8 @@ func newCommits(dir, from, to string) ([]string, error) {
 func RunCommand(dir, command string, timeout time.Duration) error {
 	log.Printf("running: %s", command)
 
-	base := strings.Fields(command)
-	if len(base) == 0 {
+	if strings.TrimSpace(command) == "" {
 		return fmt.Errorf("empty command in config")
-	}
-
-	if _, err := exec.LookPath(base[0]); err != nil {
-		return fmt.Errorf("command not found: '%s' — check your config or install it", base[0])
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -141,6 +136,10 @@ func RunCommand(dir, command string, timeout time.Duration) error {
 			return fmt.Errorf("command timed out after %s and was killed: %s", timeout, command)
 		}
 		if exitErr, ok := err.(*exec.ExitError); ok {
+			// sh exits with 127 when a program in the command does not exist
+			if exitErr.ExitCode() == 127 {
+				return fmt.Errorf("command not found: %s — check your config or install it", command)
+			}
 			return fmt.Errorf("command failed with exit code %d: %s", exitErr.ExitCode(), command)
 		}
 		return fmt.Errorf("command failed: %s — %w", command, err)
