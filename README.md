@@ -1,5 +1,7 @@
 # TuGo
 
+[![tests](https://github.com/hope61/TuGo/actions/workflows/test.yml/badge.svg)](https://github.com/hope61/TuGo/actions/workflows/test.yml)
+
 ![A git push on top, and Tugo on the server below pulling the change and running docker compose a moment later](docs/demo.gif)
 
 Tugo keeps the apps on your server up to date. You push to GitHub. Tugo pulls the new code and runs your build and restart commands. You don't need to log in to the server for every change.
