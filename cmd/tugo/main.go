@@ -108,6 +108,13 @@ func main() {
 	if len(pollRepos) > 0 {
 		log.Printf("started polling every %s for %d repos", cfg.Interval, len(pollRepos))
 	}
+	if e, err := history.Recover(binDir, version); err != nil {
+		log.Printf("WARNING: failed to save the last deploy to history: %v", err)
+	} else if e != nil && e.Interrupted {
+		log.Printf("WARNING: the last deploy of %s (%s) was interrupted, tugo stopped before its commands finished", e.Repo, e.Commit)
+	} else if e != nil {
+		log.Printf("updated tugo to %s", e.Commit)
+	}
 	logFile.Close()
 
 	pollChecks := make(chan struct{}, 1)
@@ -198,6 +205,12 @@ func checkRepos(binDir string, repos []config.Repo, timeout time.Duration) {
 			log.Printf("  ... and %d more", len(commits)-5)
 		}
 
+		hash, message, _ := strings.Cut(commits[0], " ")
+		entry := history.Entry{Time: started, Repo: repo.Dir, Commit: hash, Message: message, Commits: len(commits)}
+		if err := history.Start(binDir, entry); err != nil {
+			log.Printf("WARNING: failed to save history: %v", err)
+		}
+
 		for _, cmd := range repo.Commands {
 			err = git.RunCommand(repo.Dir, cmd, timeout)
 			if err != nil {
@@ -206,8 +219,7 @@ func checkRepos(binDir string, repos []config.Repo, timeout time.Duration) {
 			}
 		}
 
-		hash, message, _ := strings.Cut(commits[0], " ")
-		entry := history.Entry{Time: started, Repo: repo.Dir, Commit: hash, Message: message, Commits: len(commits), Took: time.Since(started)}
+		entry.Took = time.Since(started)
 		if err != nil {
 			entry.Error = err.Error()
 		}

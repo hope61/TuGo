@@ -276,6 +276,64 @@ func TestE2EPollMode(t *testing.T) {
 	}
 }
 
+func TestE2EInterruptedDeployIsRecorded(t *testing.T) {
+	r := testutil.NewRepos(t)
+	r.Push(t, "update tugo")
+	// the command kills tugo itself, like sudo make service restarting the service mid deploy
+	dir, bin := install(t, fmt.Sprintf("mode: poll\ninterval: 1h\nrepos:\n  - dir: %s\n    commands:\n      - kill -9 $PPID\n", r.Srv))
+
+	out, _ := tugo(t, bin, "", "-c")
+	if strings.Contains(out, "command finished") || strings.Contains(out, "checked 1 repos") {
+		t.Fatalf("tugo should have been killed mid deploy:\n%s", out)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "deploying.json")); err != nil {
+		t.Fatal("the cut off deploy was not saved")
+	}
+	if out, _ := tugo(t, bin, "", "--history"); !strings.Contains(out, "no deploys yet") {
+		t.Fatalf("nothing should be in history before tugo starts again:\n%s", out)
+	}
+
+	restartWithoutRepos(t, dir)
+	service := start(t, bin)
+	waitFor(t, "the interrupted warning", 10*time.Second, func() bool {
+		return strings.Contains(service.String(), "WARNING: the last deploy of "+r.Srv)
+	})
+
+	out, _ = tugo(t, bin, "", "--history")
+	for _, want := range []string{"  ↻  srv  ", " update tugo (tester)", "interrupted, tugo stopped before the commands finished", "1 deploy, 0 failed, 1 interrupted"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("--history missing %q:\n%s", want, out)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, "deploying.json")); err == nil {
+		t.Fatal("deploying.json should be gone after it was recorded")
+	}
+}
+
+func TestE2ESelfUpdateIsRecordedAsDone(t *testing.T) {
+	r := testutil.NewRepos(t)
+	r.Push(t, "update tugo")
+	commit := testutil.Git(t, r.Src, "rev-parse", "--short=7", "HEAD")
+	dir, bin := install(t, fmt.Sprintf("mode: poll\ninterval: 1h\nrepos:\n  - dir: %s\n    commands:\n      - kill -9 $PPID\n", r.Srv))
+	tugo(t, bin, "", "-c")
+
+	// the restarted service is the new build, its version has the deployed commit in it like make build does
+	if out, err := exec.Command("go", "build", "-ldflags", "-X main.version=v0.1.0-1-g"+commit, "-o", bin, ".").CombinedOutput(); err != nil {
+		t.Fatalf("build failed: %v\n%s", err, out)
+	}
+	restartWithoutRepos(t, dir)
+	service := start(t, bin)
+	waitFor(t, "the update line", 10*time.Second, func() bool { return strings.Contains(service.String(), "updated tugo to "+commit) })
+
+	out, _ := tugo(t, bin, "", "--history")
+	if !strings.Contains(out, "  ✓  srv  "+commit) || !strings.Contains(out, "1 deploy, 0 failed\n") || strings.Contains(out, "interrupted") {
+		t.Fatalf("self-update should show as a normal deploy:\n%s", out)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "deploying.json")); err == nil {
+		t.Fatal("deploying.json should be gone")
+	}
+}
+
 func TestE2EWebhookMode(t *testing.T) {
 	r := testutil.NewRepos(t)
 	addr := freePort(t)
@@ -455,4 +513,11 @@ func TestE2EEditConfig(t *testing.T) {
 			t.Fatalf("exit %d\n%s\nsaved: %q", code, out, saved)
 		}
 	})
+}
+
+// the restarted service checks its repos right away, point it at an empty folder so no git pull
+// is still writing into the test repo when the test ends and deletes it
+func restartWithoutRepos(t *testing.T, dir string) {
+	t.Helper()
+	os.WriteFile(filepath.Join(dir, "config.yaml"), []byte("mode: poll\ninterval: 1h\nrepos:\n  - dir: "+t.TempDir()+"\n"), 0644)
 }

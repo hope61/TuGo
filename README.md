@@ -251,6 +251,8 @@ Yesterday
 
 A deploy is a pull that brought new commits. `+2` means two more commits came in the same pull. Tugo saves the last 500 deploys in `history.jsonl` next to the binary. Unlike the logs, they aren't deleted after a week.
 
+If Tugo is stopped in the middle of a deploy, for example by a reboot or by Tugo updating itself, the deploy is saved the next time Tugo starts. An update of Tugo itself shows as ✓. Anything else shows as ↻ interrupted, because Tugo can't know if its commands finished.
+
 ## Commands
 
 | Command | What it does |

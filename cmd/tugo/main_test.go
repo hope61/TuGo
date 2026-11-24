@@ -245,6 +245,25 @@ func TestCheckReposSavesHistory(t *testing.T) {
 	}
 }
 
+func TestCheckReposSavesPendingDeployWhileCommandsRun(t *testing.T) {
+	r := testutil.NewRepos(t)
+	r.Push(t, "change")
+	dir := t.TempDir()
+	logs := captureLog(t)
+
+	checkRepos(dir, []config.Repo{repo(r.Srv, "test -f "+filepath.Join(dir, "deploying.json"))}, time.Minute)
+
+	if strings.Contains(logs.String(), "ERROR") {
+		t.Fatalf("deploying.json did not exist while the commands ran:\n%s", logs)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "deploying.json")); err == nil {
+		t.Fatal("deploying.json was left behind after the deploy finished")
+	}
+	if entries := readHistory(t, dir); len(entries) != 1 || entries[0].Interrupted {
+		t.Fatalf("got %+v", entries)
+	}
+}
+
 func TestCheckReposHistoryErrorDoesNotStopDeploy(t *testing.T) {
 	r := testutil.NewRepos(t)
 	r.Push(t, "change")

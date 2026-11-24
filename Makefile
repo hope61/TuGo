@@ -2,7 +2,8 @@ PREFIX       ?= /opt/tugo
 # the service runs as whoever invoked sudo, so it uses their git credentials
 SERVICE_USER ?= $(or $(SUDO_USER),$(USER))
 UNIT         := /etc/systemd/system/tugo.service
-VERSION      ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+# run git as the sudo user, git refuses to read a repo owned by someone else when run as root
+VERSION      ?= $(shell $(if $(SUDO_USER),sudo -u $(SUDO_USER)) git describe --tags --long --always --dirty 2>/dev/null || echo dev)
 
 .PHONY: build install service uninstall secret test
 

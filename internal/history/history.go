@@ -11,19 +11,60 @@ import (
 	"unicode/utf8"
 )
 
-const keep = 500
+const (
+	keep    = 500
+	pending = "deploying.json"
+)
 
 type Entry struct {
-	Time    time.Time     `json:"time"`
-	Repo    string        `json:"repo"`
-	Commit  string        `json:"commit"`
-	Message string        `json:"message"`
-	Commits int           `json:"commits"`
-	Error   string        `json:"error,omitempty"`
-	Took    time.Duration `json:"took"`
+	Time        time.Time     `json:"time"`
+	Repo        string        `json:"repo"`
+	Commit      string        `json:"commit"`
+	Message     string        `json:"message"`
+	Commits     int           `json:"commits"`
+	Error       string        `json:"error,omitempty"`
+	Interrupted bool          `json:"interrupted,omitempty"`
+	Took        time.Duration `json:"took"`
+}
+
+// Start saves the deploy that is about to run, so it isn't lost if tugo is stopped in the middle of it.
+// shortcut: one pending file, so a tugo -c deploying at the same moment as the service can overwrite it, upgrade to one file per repo if that matters
+func Start(dir string, e Entry) error {
+	data, err := json.Marshal(e)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, pending), data, 0644)
+}
+
+// Recover saves the deploy that was still running when tugo stopped, if there is one. If the running
+// tugo's version has the deploy's commit in it, tugo was updating itself and the update worked.
+func Recover(dir, version string) (*Entry, error) {
+	path := filepath.Join(dir, pending)
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var e Entry
+	if err := json.Unmarshal(data, &e); err != nil {
+		os.Remove(path)
+		return nil, fmt.Errorf("broken %s: %w", pending, err)
+	}
+
+	if len(e.Commit) >= 7 && strings.Contains(version, e.Commit[:7]) {
+		e.Took = time.Since(e.Time)
+	} else {
+		e.Interrupted = true
+	}
+	return &e, Add(dir, e)
 }
 
 func Add(dir string, e Entry) error {
+	defer os.Remove(filepath.Join(dir, pending))
 	path := filepath.Join(dir, "history.jsonl")
 
 	line, err := json.Marshal(e)
@@ -105,7 +146,7 @@ func Show(dir string, n int) {
 		msgWidth = max(msgWidth, utf8.RuneCountInString(msg))
 	}
 
-	day, failed := "", 0
+	day, failed, interrupted := "", 0, 0
 	for i, e := range entries {
 		t := e.Time.Local()
 		if d := dayName(t); d != day {
@@ -116,10 +157,14 @@ func Show(dir string, n int) {
 			fmt.Println(paint("1", d))
 		}
 
-		mark := paint("32", "✓")
-		if e.Error != "" {
+		mark, took := paint("32", "✓"), e.Took.Round(time.Second).String()
+		switch {
+		case e.Error != "":
 			mark = paint("31", "✗")
 			failed++
+		case e.Interrupted:
+			mark, took = paint("33", "↻"), ""
+			interrupted++
 		}
 
 		fmt.Printf("  %s  %s  %s  %s  %s  %s\n",
@@ -128,10 +173,13 @@ func Show(dir string, n int) {
 			paint("1", pad(filepath.Base(e.Repo), repoWidth)),
 			paint("2", e.Commit),
 			pad(messages[i], msgWidth),
-			paint("2", fmt.Sprintf("%5s", e.Took.Round(time.Second))),
+			paint("2", fmt.Sprintf("%5s", took)),
 		)
 		if e.Error != "" {
 			fmt.Printf("            %s\n", paint("31", e.Error))
+		}
+		if e.Interrupted {
+			fmt.Printf("            %s\n", paint("33", "interrupted, tugo stopped before the commands finished"))
 		}
 	}
 
@@ -139,7 +187,11 @@ func Show(dir string, n int) {
 	if len(entries) == 1 {
 		word = "deploy"
 	}
-	fmt.Printf("\n%d %s, %d failed\n", len(entries), word, failed)
+	fmt.Printf("\n%d %s, %d failed", len(entries), word, failed)
+	if interrupted > 0 {
+		fmt.Printf(", %d interrupted", interrupted)
+	}
+	fmt.Println()
 }
 
 func dayName(t time.Time) string {
