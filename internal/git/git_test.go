@@ -1,6 +1,7 @@
 package git
 
 import (
+	"bytes"
 	"io"
 	"log"
 	"os"
@@ -140,13 +141,69 @@ func TestPullErrors(t *testing.T) {
 		r.Push(t, "remote change")
 
 		commits, err := Pull(r.Srv, "origin", "")
-		if err == nil || !strings.Contains(err.Error(), "git pull failed") || commits != nil {
+		if err == nil || !strings.Contains(err.Error(), "local history differs from origin/main and has commits that were never on the remote") || commits != nil {
 			t.Fatalf("got %v %v, want a pull error", commits, err)
 		}
 		if r.Head(t) != local {
-			t.Fatal("server copy changed even though the pull failed")
+			t.Fatal("a commit made on the server was thrown away")
 		}
 	})
+}
+
+func forcePush(t *testing.T, r testutil.Repos, message string) {
+	t.Helper()
+	testutil.Git(t, r.Src, "commit", "-q", "--amend", "--allow-empty", "-m", message)
+	testutil.Git(t, r.Src, "push", "-q", "-f", "origin", "main")
+}
+
+func TestPullAfterForcePush(t *testing.T) {
+	var logs bytes.Buffer
+	log.SetOutput(&logs)
+	t.Cleanup(func() { log.SetOutput(io.Discard) })
+
+	r := testutil.NewRepos(t)
+	r.Push(t, "first")
+	if _, err := Pull(r.Srv, "origin", ""); err != nil {
+		t.Fatal(err)
+	}
+	old := r.Head(t)
+	forcePush(t, r, "first fixed")
+
+	commits, err := Pull(r.Srv, "origin", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commits) != 1 || !strings.HasSuffix(commits[0], " first fixed (tester)") {
+		t.Fatalf("expected the rewritten commit, got %v", commits)
+	}
+	if r.Head(t) != testutil.Git(t, r.Src, "rev-parse", "HEAD") {
+		t.Fatal("server copy was not reset to the rewritten remote")
+	}
+	if !strings.Contains(logs.String(), "WARNING: origin/main was force pushed, reset "+r.Srv+" from "+old[:7]+" to match it") {
+		t.Fatalf("got log:\n%s", logs.String())
+	}
+}
+
+func TestPullAfterForcePushKeepsUncommittedChanges(t *testing.T) {
+	r := testutil.NewRepos(t)
+	os.WriteFile(filepath.Join(r.Src, "app.txt"), []byte("v1\n"), 0644)
+	testutil.Git(t, r.Src, "add", "app.txt")
+	r.Push(t, "add app")
+	if _, err := Pull(r.Srv, "origin", ""); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(r.Srv, "app.txt"), []byte("edited on the server\n"), 0644)
+	before := r.Head(t)
+	forcePush(t, r, "rewritten")
+
+	_, err := Pull(r.Srv, "origin", "main")
+	if err == nil || !strings.Contains(err.Error(), "local history differs from origin/main and there are uncommitted changes") {
+		t.Fatalf("got %v", err)
+	}
+	data, _ := os.ReadFile(filepath.Join(r.Srv, "app.txt"))
+	if r.Head(t) != before || string(data) != "edited on the server\n" {
+		t.Fatal("the server copy or its uncommitted change was touched")
+	}
 }
 
 func TestRunCommand(t *testing.T) {

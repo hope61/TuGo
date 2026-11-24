@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -37,6 +38,13 @@ func Pull(dir, remote, branch string) ([]string, error) {
 	output, err := cmd.CombinedOutput()
 	out := strings.TrimSpace(string(output))
 
+	if err != nil && strings.Contains(out, "Not possible to fast-forward") {
+		if err := resetToRewrittenRemote(dir, remote, branch, before); err != nil {
+			return nil, err
+		}
+		err = nil
+	}
+
 	if err != nil {
 		switch {
 		case strings.Contains(out, "does not appear to be a git repository"):
@@ -66,6 +74,41 @@ func Pull(dir, remote, branch string) ([]string, error) {
 		return []string{after[:7]}, nil
 	}
 	return commits, nil
+}
+
+// After a force push the server copy can't fast-forward anymore. Reset it to the remote only when
+// nothing made on the server can be lost: no uncommitted changes, and HEAD is a commit the remote had before.
+func resetToRewrittenRemote(dir, remote, branch, before string) error {
+	if branch == "" {
+		current, err := CurrentBranch(dir)
+		if err != nil {
+			return err
+		}
+		branch = current
+	}
+	target := remote + "/" + branch
+
+	if changes, err := gitOutput(dir, "status", "--porcelain", "--untracked-files=no"); err != nil || changes != "" {
+		return fmt.Errorf("local history differs from %s and there are uncommitted changes, commit or drop them and run git reset --hard %s", target, target)
+	}
+
+	past, err := gitOutput(dir, "rev-list", "--walk-reflogs", "refs/remotes/"+target)
+	if err != nil || !slices.Contains(strings.Fields(past), before) {
+		return fmt.Errorf("local history differs from %s and has commits that were never on the remote, run git reset --hard %s if you want to drop them", target, target)
+	}
+
+	if _, err := gitOutput(dir, "reset", "-q", "--hard", target); err != nil {
+		return fmt.Errorf("failed to reset to %s: %w", target, err)
+	}
+	log.Printf("WARNING: %s was force pushed, reset %s from %s to match it", target, dir, before[:7])
+	return nil
+}
+
+func gitOutput(dir string, args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	output, err := cmd.Output()
+	return strings.TrimSpace(string(output)), err
 }
 
 func head(dir string) string {

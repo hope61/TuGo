@@ -115,6 +115,10 @@ commands:
 
 If a command runs longer than `timeout`, Tugo kills it and everything it started. Because of this, one stuck build can't block your other repos.
 
+### Force pushes
+
+Tugo never merges. If you rewrite history on GitHub (for example `git commit --amend` and `git push --force`), the server's copy can't fast-forward anymore. Tugo then resets it to the remote branch and runs your commands, but only when nothing can be lost: the copy has no uncommitted changes, and its current commit is one the remote had before. If you made commits or changes on the server itself, Tugo leaves the copy alone and logs how to fix it.
+
 ### Edit with `tugo -e`
 
 `tugo -e` works like `crontab -e`. It opens the config in your `$EDITOR`. If you don't have one, it lets you pick nvim, vim or nano. Then it saves your pick in `~/.bashrc` or `~/.zshrc`.
