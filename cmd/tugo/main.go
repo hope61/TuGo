@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -16,6 +17,9 @@ import (
 	"github.com/hope61/tugo/internal/webhook"
 )
 
+// set at build time by the Makefile and GoReleaser
+var version = "dev"
+
 func main() {
 
 	showLogs := flag.Bool("logs", false, "show the latest 50 lines of logs")
@@ -27,8 +31,15 @@ func main() {
 	check := flag.Bool("check", false, "check all repos now and exit")
 	flag.BoolVar(check, "c", false, "check all repos now and exit")
 	showHistory := flag.Bool("history", false, "show the last deploys: tugo --history [n]")
+	showVersion := flag.Bool("version", false, "show the version")
+	flag.BoolVar(showVersion, "v", false, "show the version")
 	flag.Usage = usage
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println("tugo", version)
+		return
+	}
 
 	binDir := logger.BinaryDir()
 

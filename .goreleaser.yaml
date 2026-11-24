@@ -1,0 +1,22 @@
+version: 2
+
+builds:
+  - main: ./cmd/tugo
+    binary: tugo
+    env:
+      - CGO_ENABLED=0
+    goos: [linux]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X main.version={{.Version}}"]
+
+archives:
+  # no version in the name so releases/latest/download/tugo_linux_amd64.tar.gz always works
+  - name_template: "tugo_{{ .Os }}_{{ .Arch }}"
+    files: [README.md, LICENSE, example-config.yaml]
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc

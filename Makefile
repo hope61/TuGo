@@ -2,11 +2,12 @@ PREFIX       ?= /opt/tugo
 # the service runs as whoever invoked sudo, so it uses their git credentials
 SERVICE_USER ?= $(or $(SUDO_USER),$(USER))
 UNIT         := /etc/systemd/system/tugo.service
+VERSION      ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
 .PHONY: build install service uninstall secret test
 
 build:
-	go build -o tugo ./cmd/tugo/
+	go build -ldflags "-X main.version=$(VERSION)" -o tugo ./cmd/tugo/
 
 install: build
 	mkdir -p $(PREFIX)

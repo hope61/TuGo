@@ -161,6 +161,12 @@ func TestE2EHelp(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "Config file: "+filepath.Join(real, "config.yaml")) || !strings.Contains(out, "-c, --check") {
 		t.Fatalf("exit %d:\n%s", code, out)
 	}
+
+	for _, flag := range []string{"-v", "--version"} {
+		if out, code := tugo(t, bin, "", flag); code != 0 || out != "tugo dev\n" {
+			t.Fatalf("%s: exit %d, got %q", flag, code, out)
+		}
+	}
 }
 
 func TestE2EConfigErrors(t *testing.T) {

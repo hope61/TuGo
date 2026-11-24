@@ -35,6 +35,7 @@ Webhooks:
   --add-hook owner/repo ...     add the webhook to repos
   --remove-hook owner/repo ...  remove the webhook from repos
 
+  -v, --version                 show the version
   -h, --help                    show this help
 `, filepath.Join(logger.BinaryDir(), "config.yaml"))
 }

@@ -1,6 +1,7 @@
 # TuGo
 
 [![tests](https://github.com/hope61/TuGo/actions/workflows/test.yml/badge.svg)](https://github.com/hope61/TuGo/actions/workflows/test.yml)
+[![release](https://img.shields.io/github/v/release/hope61/TuGo)](https://github.com/hope61/TuGo/releases/latest)
 
 ![A git push on top, and Tugo on the server below pulling the change and running docker compose a moment later](docs/demo.gif)
 
@@ -41,6 +42,19 @@ This does four things:
 4. It starts a `tugo` service. The service runs as your user, so it uses your git keys.
 
 Next, [write your config](#config).
+
+### Prebuilt binary
+
+Every [release](https://github.com/hope61/TuGo/releases/latest) has ready binaries for Linux (amd64 and arm64), so you don't need Go. This installs only the binary, without the service:
+
+```
+curl -L https://github.com/hope61/TuGo/releases/latest/download/tugo_linux_amd64.tar.gz | tar xz
+sudo mkdir -p /opt/tugo
+sudo mv tugo /opt/tugo/ && sudo ln -sf /opt/tugo/tugo /usr/local/bin/tugo
+sudo cp -n example-config.yaml /opt/tugo/config.yaml
+```
+
+On an ARM server, use `tugo_linux_arm64.tar.gz`. Run `tugo -v` to see which version you have.
 
 ## Config
 
@@ -242,6 +256,7 @@ A deploy is a pull that brought new commits. `+2` means two more commits came in
 | `tugo -l -f` | Follow the logs live |
 | `tugo --history [n]` | Show the last deploys |
 | `tugo -e` | Edit the config safely |
+| `tugo -v` | Show the version |
 | `tugo --add-hook owner/repo ...` | Add the webhook to repos |
 | `tugo --remove-hook owner/repo ...` | Remove the webhook from repos |
 | `make build` | Only build the binary |
@@ -268,6 +283,13 @@ A deploy is a pull that brought new commits. `+2` means two more commits came in
 ## Contributing
 
 Open an issue or a pull request. To try your changes, run `make build`, then run `./tugo` next to a test `config.yaml`.
+
+To make a release, tag a commit on `main` and push the tag. GitHub runs the tests, builds the binaries and publishes the release by itself. Tags that aren't on `main` are refused.
+
+```
+git tag v0.1.0
+git push origin v0.1.0
+```
 
 > [!NOTE]
 > Tugo uses `Setpgid` to kill stuck commands. This only works on Linux and macOS, so Tugo doesn't build on Windows.
