@@ -1,4 +1,4 @@
-# TuGo
+# <img src="docs/icon.png" alt="" width="48" align="center"> TuGo
 
 [![tests](https://github.com/hope61/TuGo/actions/workflows/test.yml/badge.svg)](https://github.com/hope61/TuGo/actions/workflows/test.yml)
 [![release](https://img.shields.io/github/v/release/hope61/TuGo)](https://github.com/hope61/TuGo/releases/latest)
