@@ -1,7 +1,15 @@
-# <img src="docs/icon.png" alt="" width="48" align="center"> TuGo
+<p align="center">
+  <img src="docs/icon.png" alt="TuGo icon, a tugboat towing a line of git commits" width="200">
+</p>
 
-[![tests](https://github.com/hope61/TuGo/actions/workflows/test.yml/badge.svg)](https://github.com/hope61/TuGo/actions/workflows/test.yml)
-[![release](https://img.shields.io/github/v/release/hope61/TuGo)](https://github.com/hope61/TuGo/releases/latest)
+<h1 align="center">TuGo</h1>
+
+<p align="center">Push to GitHub. Your server updates itself.</p>
+
+<p align="center">
+  <a href="https://github.com/hope61/TuGo/actions/workflows/test.yml"><img src="https://github.com/hope61/TuGo/actions/workflows/test.yml/badge.svg" alt="tests"></a>
+  <a href="https://github.com/hope61/TuGo/releases/latest"><img src="https://img.shields.io/github/v/release/hope61/TuGo" alt="release"></a>
+</p>
 
 ![A git push on top, and Tugo on the server below pulling the change and running docker compose a moment later](docs/demo.gif)
 
