@@ -29,6 +29,7 @@ Tugo keeps the apps on your server up to date. You push to GitHub. Tugo pulls th
 - [Config](#config)
 - [Webhook mode](#webhook-mode)
 - [Cloudflare Tunnel](#cloudflare-tunnel)
+- [Status](#status)
 - [Logs](#logs)
 - [History](#history)
 - [Pause a repo](#pause-a-repo)
@@ -233,6 +234,14 @@ tugo --add-hook hope61/project-a
 
 Then push a commit and watch it with `tugo -l -f`.
 
+## Status
+
+`tugo -s` shows every repo at a glance: if the service is running, what each repo is on, how its last deploy went, and anything that needs a look.
+
+![tugo -s with seven repos, one deployed fine, one failed, one paused, one on the wrong branch and one whose folder is missing](docs/status.png)
+
+The dot before each repo is its health. Green is fine, red is a failed deploy or a broken repo, orange is paused, interrupted or something to check, and grey means it was never deployed. A line under the repo says what is wrong.
+
 ## Logs
 
 Tugo saves logs in a `logs/` folder next to the binary. It makes one file per day and deletes files older than a week.
@@ -277,6 +286,7 @@ While a repo is paused, Tugo doesn't pull it or run its commands. Other repos ke
 
 | Command | What it does |
 |---|---|
+| `tugo -s` | Show every repo at a glance |
 | `tugo -c` | Check all repos now and exit |
 | `tugo --pause repo ...` | Stop deploying repos |
 | `tugo --resume repo ...` | Deploy them again |

@@ -561,3 +561,31 @@ func TestE2EPauseAndResume(t *testing.T) {
 		t.Fatalf("no repo: exit %d\n%s", code, out)
 	}
 }
+
+func TestE2EStatus(t *testing.T) {
+	r := testutil.NewRepos(t)
+	r.Push(t, "fix navbar")
+	_, bin := install(t, fmt.Sprintf("mode: poll\ninterval: 5m\nrepos:\n  - dir: %s\n    commands:\n      - echo deployed\n", r.Srv))
+
+	// systemctl isn't on every machine running the tests, so a fake one says the service runs
+	fake := t.TempDir()
+	started := time.Now().Add(-2 * time.Hour).Unix()
+	os.WriteFile(filepath.Join(fake, "systemctl"), []byte(fmt.Sprintf("#!/bin/sh\necho LoadState=loaded\necho ActiveState=active\necho SubState=running\necho ActiveEnterTimestamp=@%d\n", started)), 0755)
+	t.Setenv("PATH", fake+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	out, code := tugo(t, bin, "", "-s")
+	for _, want := range []string{" ● running for 2h 0m  ·  polling every 5m", " srv ", " init", "never", "1 repo  ·  1 never deployed"} {
+		if code != 0 || !strings.Contains(out, want) {
+			t.Fatalf("before a deploy, missing %q (exit %d):\n%s", want, code, out)
+		}
+	}
+
+	tugo(t, bin, "", "-c")
+	tugo(t, bin, "", "--pause", "srv")
+	out, _ = tugo(t, bin, "", "--status")
+	for _, want := range []string{" fix navbar ", "✓ just now", "└ paused, tugo --resume srv to deploy it again", "1 repo  ·  1 paused"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("after a deploy and a pause, missing %q:\n%s", want, out)
+		}
+	}
+}

@@ -29,6 +29,8 @@ func main() {
 	edit := flag.Bool("e", false, "edit config.yaml (like crontab -e)")
 	addHook := flag.Bool("add-hook", false, "add the webhook to the given repos: tugo --add-hook owner/repo ...")
 	removeHook := flag.Bool("remove-hook", false, "remove the webhook from the given repos: tugo --remove-hook owner/repo ...")
+	showStatusFlag := flag.Bool("status", false, "show every repo at a glance")
+	flag.BoolVar(showStatusFlag, "s", false, "show every repo at a glance")
 	check := flag.Bool("check", false, "check all repos now and exit")
 	flag.BoolVar(check, "c", false, "check all repos now and exit")
 	pause := flag.Bool("pause", false, "stop deploying the given repos: tugo --pause repo ...")
@@ -90,6 +92,11 @@ func main() {
 
 	if len(cfg.Repos) == 0 {
 		log.Fatalf("no repos in config")
+	}
+
+	if *showStatusFlag {
+		showStatus(binDir, cfg, serviceState(), time.Now())
+		return
 	}
 
 	if *check {

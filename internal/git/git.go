@@ -104,6 +104,17 @@ func resetToRewrittenRemote(dir, remote, branch, before string) error {
 	return nil
 }
 
+// Info returns the short hash and subject of the checked out commit, and whether tracked files have uncommitted changes
+func Info(dir string) (commit, subject string, dirty bool, err error) {
+	out, err := gitOutput(dir, "log", "-1", "--format=%h%x00%s")
+	if err != nil {
+		return "", "", false, fmt.Errorf("not a git repo or it has no commits")
+	}
+	commit, subject, _ = strings.Cut(out, "\x00")
+	changes, _ := gitOutput(dir, "status", "--porcelain", "--untracked-files=no")
+	return commit, subject, changes != "", nil
+}
+
 func gitOutput(dir string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir

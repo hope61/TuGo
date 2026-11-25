@@ -19,6 +19,7 @@ Run without flags it starts the service loop.
 Config file: %s
 
 Repos:
+  -s, --status                  show every repo at a glance
   -c, --check                   check all repos now and exit
   --pause repo ...              stop deploying repos (folder name or full path)
   --resume repo ...             deploy them again and pull what was pushed meanwhile

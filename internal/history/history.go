@@ -102,11 +102,11 @@ func Add(dir string, e Entry) error {
 	return os.Rename(tmp, path)
 }
 
-func Show(dir string, n int) {
+// read returns the saved deploys, oldest first, skipping broken lines
+func read(dir string) ([]Entry, error) {
 	data, err := os.ReadFile(filepath.Join(dir, "history.jsonl"))
 	if err != nil && !os.IsNotExist(err) {
-		fmt.Printf("failed to read history: %v\n", err)
-		return
+		return nil, err
 	}
 
 	var entries []Entry
@@ -115,6 +115,25 @@ func Show(dir string, n int) {
 		if json.Unmarshal([]byte(line), &e) == nil {
 			entries = append(entries, e)
 		}
+	}
+	return entries, nil
+}
+
+// Latest returns the newest deploy of every repo, by repo folder
+func Latest(dir string) map[string]Entry {
+	latest := map[string]Entry{}
+	entries, _ := read(dir)
+	for _, e := range entries {
+		latest[e.Repo] = e
+	}
+	return latest
+}
+
+func Show(dir string, n int) {
+	entries, err := read(dir)
+	if err != nil {
+		fmt.Printf("failed to read history: %v\n", err)
+		return
 	}
 
 	if len(entries) == 0 {
