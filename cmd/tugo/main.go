@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +31,8 @@ func main() {
 	removeHook := flag.Bool("remove-hook", false, "remove the webhook from the given repos: tugo --remove-hook owner/repo ...")
 	check := flag.Bool("check", false, "check all repos now and exit")
 	flag.BoolVar(check, "c", false, "check all repos now and exit")
+	pause := flag.Bool("pause", false, "stop deploying the given repos: tugo --pause repo ...")
+	resume := flag.Bool("resume", false, "deploy the given repos again: tugo --resume repo ...")
 	showHistory := flag.Bool("history", false, "show the last deploys: tugo --history [n]")
 	showVersion := flag.Bool("version", false, "show the version")
 	flag.BoolVar(showVersion, "v", false, "show the version")
@@ -80,6 +83,11 @@ func main() {
 		return
 	}
 
+	if *pause || *resume {
+		pauseRepos(binDir, cfg, *resume, flag.Args())
+		return
+	}
+
 	if len(cfg.Repos) == 0 {
 		log.Fatalf("no repos in config")
 	}
@@ -114,6 +122,9 @@ func main() {
 		log.Printf("WARNING: the last deploy of %s (%s) was interrupted, tugo stopped before its commands finished", e.Repo, e.Commit)
 	} else if e != nil {
 		log.Printf("updated tugo to %s", e.Commit)
+	}
+	if paused := pausedRepos(binDir); len(paused) > 0 {
+		log.Printf("WARNING: paused, not deploying until tugo --resume: %s", strings.Join(paused, ", "))
 	}
 	logFile.Close()
 
@@ -170,7 +181,12 @@ func signal(ch chan struct{}) {
 }
 
 func checkRepos(binDir string, repos []config.Repo, timeout time.Duration) {
+	paused := pausedRepos(binDir)
 	for _, repo := range repos {
+		if slices.Contains(paused, repo.Dir) {
+			continue
+		}
+
 		currentBranch, err := git.CurrentBranch(repo.Dir)
 		if err != nil {
 			log.Printf("ERROR: %s — %v", repo.Dir, err)

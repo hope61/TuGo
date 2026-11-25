@@ -20,6 +20,8 @@ Config file: %s
 
 Repos:
   -c, --check                   check all repos now and exit
+  --pause repo ...              stop deploying repos (folder name or full path)
+  --resume repo ...             deploy them again and pull what was pushed meanwhile
 
 Logs:
   -l, --logs                    show the last 50 log lines

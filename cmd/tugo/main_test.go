@@ -56,7 +56,7 @@ func TestUsage(t *testing.T) {
 
 	usage()
 
-	for _, want := range []string{"Config file: ", "config.yaml", "-c, --check", "-l, --logs", "-l -f", "--history [n]", "-e", "--add-hook owner/repo", "--remove-hook owner/repo", "-v, --version", "-h, --help"} {
+	for _, want := range []string{"Config file: ", "config.yaml", "-c, --check", "--pause repo ...", "--resume repo ...", "-l, --logs", "-l -f", "--history [n]", "-e", "--add-hook owner/repo", "--remove-hook owner/repo", "-v, --version", "-h, --help"} {
 		if !strings.Contains(buf.String(), want) {
 			t.Fatalf("help is missing %q:\n%s", want, buf.String())
 		}

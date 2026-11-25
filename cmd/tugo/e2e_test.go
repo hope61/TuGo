@@ -521,3 +521,43 @@ func restartWithoutRepos(t *testing.T, dir string) {
 	t.Helper()
 	os.WriteFile(filepath.Join(dir, "config.yaml"), []byte("mode: poll\ninterval: 1h\nrepos:\n  - dir: "+t.TempDir()+"\n"), 0644)
 }
+
+func TestE2EPauseAndResume(t *testing.T) {
+	r := testutil.NewRepos(t)
+	before := r.Head(t)
+	dir, bin := install(t, fmt.Sprintf("repos:\n  - dir: %s\n    commands:\n      - echo deployed >> deploys.txt\n", r.Srv))
+
+	out, code := tugo(t, bin, "", "--pause", "srv")
+	if code != 0 || !strings.Contains(out, "paused "+r.Srv+", it won't be deployed until tugo --resume") {
+		t.Fatalf("--pause: exit %d\n%s", code, out)
+	}
+
+	r.Push(t, "pushed while paused")
+	out, _ = tugo(t, bin, "", "-c")
+	if strings.Contains(out, "pulled") || r.Head(t) != before {
+		t.Fatalf("a paused repo was deployed:\n%s", out)
+	}
+
+	service := start(t, bin)
+	waitFor(t, "the paused warning", 10*time.Second, func() bool {
+		return strings.Contains(service.String(), "WARNING: paused, not deploying until tugo --resume: "+r.Srv)
+	})
+
+	out, code = tugo(t, bin, "", "--resume", r.Srv)
+	if code != 0 || !strings.Contains(out, "resumed "+r.Srv) || !strings.Contains(out, " pushed while paused (tester)") {
+		t.Fatalf("--resume should pull what was pushed meanwhile: exit %d\n%s", code, out)
+	}
+	if lines(filepath.Join(r.Srv, "deploys.txt")) != 1 {
+		t.Fatal("the commands did not run after --resume")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "paused")); err == nil {
+		t.Fatal("the paused file should be gone")
+	}
+
+	if out, code := tugo(t, bin, "", "--pause", "nope"); code != 1 || !strings.Contains(out, "no repo 'nope' in config.yaml, the repos are: srv") {
+		t.Fatalf("unknown repo: exit %d\n%s", code, out)
+	}
+	if out, code := tugo(t, bin, "", "--resume"); code != 1 || !strings.Contains(out, "no repos given") {
+		t.Fatalf("no repo: exit %d\n%s", code, out)
+	}
+}

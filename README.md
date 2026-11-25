@@ -31,6 +31,7 @@ Tugo keeps the apps on your server up to date. You push to GitHub. Tugo pulls th
 - [Cloudflare Tunnel](#cloudflare-tunnel)
 - [Logs](#logs)
 - [History](#history)
+- [Pause a repo](#pause-a-repo)
 - [Commands](#commands)
 - [Project layout](#project-layout)
 
@@ -261,11 +262,24 @@ A deploy is a pull that brought new commits. `+2` means two more commits came in
 
 If Tugo is stopped in the middle of a deploy, for example by a reboot or by Tugo updating itself, the deploy is saved the next time Tugo starts. An update of Tugo itself shows as ✓. Anything else shows as ↻ interrupted, because Tugo can't know if its commands finished.
 
+## Pause a repo
+
+Need to fix something by hand on the server without a deploy overwriting it? Pause the repo:
+
+```
+tugo --pause my-portfolio
+tugo --resume my-portfolio
+```
+
+While a repo is paused, Tugo doesn't pull it or run its commands. Other repos keep deploying. `--resume` deploys it again and pulls what was pushed in the meantime right away. Name a repo by its folder name, or by its full path if two repos have the same folder name. The service also logs the paused repos every time it starts, so you don't forget one.
+
 ## Commands
 
 | Command | What it does |
 |---|---|
 | `tugo -c` | Check all repos now and exit |
+| `tugo --pause repo ...` | Stop deploying repos |
+| `tugo --resume repo ...` | Deploy them again |
 | `tugo -l` | Show the last 50 log lines |
 | `tugo -l -f` | Follow the logs live |
 | `tugo --history [n]` | Show the last deploys |
