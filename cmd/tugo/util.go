@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -43,22 +45,41 @@ Webhooks:
 `, filepath.Join(logger.BinaryDir(), "config.yaml"))
 }
 
-func manageHooks(cfg *config.Config, add bool, repos []string) {
+func webhookSecret(binDir string, cfg *config.Config) string {
+	path := filepath.Join(binDir, config.SecretFile)
+	secret, created, err := config.LoadSecret(binDir, cfg.Secret)
+	if errors.Is(err, fs.ErrPermission) {
+		log.Fatalf("failed to load webhook secret: %v (run as the user tugo runs as, or with sudo)", err)
+	}
+	if err != nil {
+		log.Fatalf("failed to load webhook secret: %v", err)
+	}
+
+	if cfg.Secret != "" {
+		log.Printf("WARNING: tugo keeps the webhook secret in %s now, delete the secret line from config.yaml", path)
+	} else if created {
+		log.Printf("made a new webhook secret in %s, add it to your repos with tugo --add-hook owner/repo", path)
+	}
+	return secret
+}
+
+func manageHooks(binDir string, cfg *config.Config, add bool, repos []string) {
 	if len(repos) == 0 {
 		log.Fatalf("no repos given, e.g. tugo --add-hook owner/repo")
 	}
 	if cfg.URL == "" {
 		log.Fatalf("set url in config.yaml to the public webhook url")
 	}
-	if add && cfg.Secret == "" {
-		log.Fatalf("set secret in config.yaml first (make secret)")
+	var secret string
+	if add {
+		secret = webhookSecret(binDir, cfg)
 	}
 
 	failed := false
 	for _, repo := range repos {
 		var err error
 		if add {
-			err = github.AddHook(repo, cfg.URL, cfg.Secret)
+			err = github.AddHook(repo, cfg.URL, secret)
 		} else {
 			err = github.RemoveHook(repo, cfg.URL)
 		}

@@ -100,7 +100,6 @@ repos:
 | `interval` | `5m` | Time between checks in poll mode, like `30s`, `5m` or `1h` |
 | `timeout` | `30m` | Kill a command that runs longer than this |
 | `listen` | `:9000` | Address for webhooks |
-| `secret` | | Webhook secret. You need it in webhook mode |
 | `url` | | Public webhook URL, used by `--add-hook` |
 
 Each repo can have:
@@ -139,24 +138,20 @@ When you close the editor, Tugo checks the config. It only saves the config if i
 
 In poll mode, Tugo checks every `interval`. In webhook mode, GitHub tells Tugo about a push, so Tugo pulls right away.
 
-**1. Make a secret.**
-
-```
-make secret
-```
-
-This saves a secret to `webhook.secret`. Git ignores this file. Use the same secret for every repo.
-
-**2. Add it to the config.**
+**1. Turn it on in the config.**
 
 ```yaml
 mode: webhook
 listen: :9000
-secret: your-secret
 url: https://your-host:9000/
 ```
 
 `url` is the public address that GitHub calls.
+
+**2. Restart Tugo.** It makes a secret in `/opt/tugo/webhook.secret` by itself. Only the service user can read it, so the secret stays safe even if someone sees `config.yaml`. Use the same secret for every repo. To see it, run `sudo cat /opt/tugo/webhook.secret`.
+
+> [!NOTE]
+> Do you still have `secret:` in `config.yaml` from an older version? Tugo moves it to `webhook.secret` and keeps your hooks working. Then delete the line from the config.
 
 **3. Add the webhook to your repos.** First, log in with `gh auth login`. Then run:
 
@@ -204,7 +199,6 @@ Each mode only checks its own repos. However, checks still run one at a time. So
 ```yaml
 mode: webhook
 listen: 127.0.0.1:9000
-secret: your-secret
 url: https://hook.yourdomain.com/
 ```
 
@@ -228,7 +222,7 @@ tugo --add-hook hope61/project-a
 | Code | What it means |
 |---|---|
 | `204` | It works |
-| `401` | The secret is wrong, or you didn't restart Tugo after you set it |
+| `401` | The secret is wrong. Did you delete `webhook.secret` after you added the hook? Then Tugo made a new one. Run `--remove-hook` and `--add-hook` again |
 | `403` or an HTML page | Cloudflare blocked it |
 | `502` / `530` | The tunnel can't reach Tugo. Check `systemctl status tugo` and the Docker warning above |
 
@@ -300,7 +294,6 @@ While a repo is paused, Tugo doesn't pull it or run its commands. Other repos ke
 | `make build` | Only build the binary |
 | `sudo make install` | Install without the service |
 | `sudo make service` | Install and start the service |
-| `make secret` | Make a webhook secret |
 | `make test` | Run all the tests |
 | `sudo make uninstall` | Remove everything |
 

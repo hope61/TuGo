@@ -177,7 +177,6 @@ func TestE2EConfigErrors(t *testing.T) {
 	}{
 		{"missing config", "", "failed to load config"},
 		{"wrong mode", "mode: banana\n", "failed to load config: mode must be poll or webhook"},
-		{"webhook without secret", "mode: webhook\nrepos:\n  - dir: /tmp\n", "webhook mode needs a secret"},
 		{"no repos", "mode: poll\n", "no repos in config"},
 	}
 	for _, tt := range tests {
@@ -337,7 +336,7 @@ func TestE2ESelfUpdateIsRecordedAsDone(t *testing.T) {
 func TestE2EWebhookMode(t *testing.T) {
 	r := testutil.NewRepos(t)
 	addr := freePort(t)
-	_, bin := install(t, fmt.Sprintf("mode: webhook\nlisten: %s\nsecret: s3cret\nrepos:\n  - dir: %s\n    commands:\n      - echo pulled >> marker\n", addr, r.Srv))
+	dir, bin := install(t, fmt.Sprintf("mode: webhook\nlisten: %s\nrepos:\n  - dir: %s\n    commands:\n      - echo pulled >> marker\n", addr, r.Srv))
 	marker := filepath.Join(r.Srv, "marker")
 
 	r.Push(t, "pushed while tugo was off")
@@ -347,6 +346,14 @@ func TestE2EWebhookMode(t *testing.T) {
 		t.Fatalf("startup line missing:\n%s", out)
 	}
 	waitForPort(t, addr)
+	if !strings.Contains(out.String(), "made a new webhook secret in") {
+		t.Fatalf("new secret line missing:\n%s", out)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "webhook.secret"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	secret := strings.TrimSpace(string(data))
 
 	body := []byte(`{"ref":"refs/heads/main"}`)
 	r.Push(t, "change")
@@ -356,7 +363,7 @@ func TestE2EWebhookMode(t *testing.T) {
 	if code := post(t, addr, "push", "", body); code != http.StatusUnauthorized {
 		t.Fatalf("missing signature got %d", code)
 	}
-	if code := post(t, addr, "ping", "s3cret", body); code != http.StatusNoContent {
+	if code := post(t, addr, "ping", secret, body); code != http.StatusNoContent {
 		t.Fatalf("ping got %d", code)
 	}
 	resp, err := http.Get("http://" + addr + "/")
@@ -370,7 +377,7 @@ func TestE2EWebhookMode(t *testing.T) {
 		t.Fatal("a rejected request or a ping started a deploy")
 	}
 
-	if code := post(t, addr, "push", "s3cret", body); code != http.StatusNoContent {
+	if code := post(t, addr, "push", secret, body); code != http.StatusNoContent {
 		t.Fatalf("signed push got %d", code)
 	}
 	waitFor(t, "the webhook deploy", 10*time.Second, func() bool { return lines(marker) == 2 })
@@ -380,7 +387,7 @@ func TestE2EMixedModesKeepTheirOwnRepos(t *testing.T) {
 	poll := testutil.NewRepos(t)
 	hook := testutil.NewRepos(t)
 	addr := freePort(t)
-	_, bin := install(t, fmt.Sprintf(`mode: webhook
+	dir, bin := install(t, fmt.Sprintf(`mode: webhook
 interval: 1h
 listen: %s
 secret: s3cret
@@ -400,6 +407,12 @@ repos:
 		return strings.Contains(s, "started webhook on") && strings.Contains(s, "started polling every 1h0m0s for 1 repos")
 	})
 	waitForPort(t, addr)
+	if !strings.Contains(out.String(), "delete the secret line from config.yaml") {
+		t.Fatalf("old secret warning missing:\n%s", out)
+	}
+	if data, _ := os.ReadFile(filepath.Join(dir, "webhook.secret")); string(data) != "s3cret\n" {
+		t.Fatalf("secret from config.yaml not moved, file has %q", data)
+	}
 
 	hook.Push(t, "hook change")
 	poll.Push(t, "poll change")
@@ -452,9 +465,12 @@ func TestE2EHooks(t *testing.T) {
 		t.Fatalf("no url: exit %d\n%s", code, out)
 	}
 
-	_, noSecret := install(t, "mode: poll\nurl: https://hook.example.com/\n")
-	if out, code := tugo(t, noSecret, "", "--add-hook", "hope61/app"); code != 1 || !strings.Contains(out, "set secret in config.yaml first") {
+	noSecretDir, noSecret := install(t, "mode: poll\nurl: https://hook.example.com/\n")
+	if out, code := tugo(t, noSecret, "", "--add-hook", "hope61/app"); code != 0 || !strings.Contains(out, "made a new webhook secret in") || !strings.Contains(out, "done: hope61/app") {
 		t.Fatalf("no secret: exit %d\n%s", code, out)
+	}
+	if _, err := os.Stat(filepath.Join(noSecretDir, "webhook.secret")); err != nil {
+		t.Fatalf("add-hook should make webhook.secret: %v", err)
 	}
 }
 

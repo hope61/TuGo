@@ -24,7 +24,7 @@ type Config struct {
 	Interval time.Duration `yaml:"interval"`
 	Timeout  time.Duration `yaml:"timeout"`
 	Listen   string        `yaml:"listen"`
-	Secret   string        `yaml:"secret"`
+	Secret   string        `yaml:"secret"` // old place for the webhook secret, LoadSecret moves it to webhook.secret
 	URL      string        `yaml:"url"`
 }
 
@@ -72,9 +72,6 @@ func Load(path string) (*Config, error) {
 		}
 		if repo.Mode != "poll" && repo.Mode != "webhook" {
 			return nil, fmt.Errorf("%s: mode must be poll or webhook", repo.Dir)
-		}
-		if repo.Mode == "webhook" && cfg.Secret == "" {
-			return nil, errors.New("webhook mode needs a secret")
 		}
 	}
 

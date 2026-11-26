@@ -81,7 +81,7 @@ func main() {
 	}
 
 	if *addHook || *removeHook {
-		manageHooks(cfg, *addHook, flag.Args())
+		manageHooks(binDir, cfg, *addHook, flag.Args())
 		return
 	}
 
@@ -117,7 +117,9 @@ func main() {
 	}
 
 	logFile := logger.Setup(binDir)
+	var secret string
 	if len(hookRepos) > 0 {
+		secret = webhookSecret(binDir, cfg)
 		log.Printf("started webhook on %s for %d repos", cfg.Listen, len(hookRepos))
 	}
 	if len(pollRepos) > 0 {
@@ -142,7 +144,7 @@ func main() {
 
 	if len(hookRepos) > 0 {
 		go func() {
-			log.Fatal(http.ListenAndServe(cfg.Listen, webhook.Handler(cfg.Secret, func() { signal(hookChecks) })))
+			log.Fatal(http.ListenAndServe(cfg.Listen, webhook.Handler(secret, func() { signal(hookChecks) })))
 		}()
 	}
 	if len(pollRepos) > 0 {

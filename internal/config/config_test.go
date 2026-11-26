@@ -86,8 +86,6 @@ func TestLoadErrors(t *testing.T) {
 	}{
 		{"wrong mode", "mode: banana\n", "mode must be poll or webhook"},
 		{"wrong repo mode", "repos:\n  - dir: /srv/a\n    mode: banana\n", "/srv/a: mode must be poll or webhook"},
-		{"webhook without secret", "mode: webhook\nrepos:\n  - dir: /srv/a\n", "webhook mode needs a secret"},
-		{"repo webhook without secret", "repos:\n  - dir: /srv/a\n    mode: webhook\n", "webhook mode needs a secret"},
 		{"setting written twice", "mode: poll\nmode: webhook\n", "a setting is written twice"},
 		{"broken yaml", "repos: [\n", ""},
 		{"bad duration", "interval: soon\n", ""},

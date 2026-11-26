@@ -5,7 +5,7 @@ UNIT         := /etc/systemd/system/tugo.service
 # run git as the sudo user, git refuses to read a repo owned by someone else when run as root
 VERSION      ?= $(shell $(if $(SUDO_USER),sudo -u $(SUDO_USER)) git describe --tags --long --always --dirty 2>/dev/null || echo dev)
 
-.PHONY: build install service uninstall secret test
+.PHONY: build install service uninstall test
 
 build:
 	go build -ldflags "-X main.version=$(VERSION)" -o tugo ./cmd/tugo/
@@ -38,10 +38,6 @@ service: install
 	systemctl daemon-reload
 	systemctl enable --now tugo
 	systemctl restart tugo
-
-secret:
-	@if [ -f webhook.secret ]; then echo "webhook.secret already exists, delete it first to make a new one"; else umask 077 && openssl rand -hex 32 > webhook.secret; fi
-	@cat webhook.secret
 
 test:
 	go test ./...
