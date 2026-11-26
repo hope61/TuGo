@@ -58,7 +58,7 @@ func webhookSecret(binDir string, cfg *config.Config) string {
 	if cfg.Secret != "" {
 		log.Printf("WARNING: tugo keeps the webhook secret in %s now, delete the secret line from config.yaml", path)
 	} else if created {
-		log.Printf("made a new webhook secret in %s, add it to your repos with tugo --add-hook owner/repo", path)
+		log.Printf("made a new webhook secret in %s, add it to your repos with tugo --add-hook owner/repo, repos that already have the hook need tugo --remove-hook owner/repo first", path)
 	}
 	return secret
 }
